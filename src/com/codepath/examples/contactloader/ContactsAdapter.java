@@ -30,10 +30,10 @@ public class ContactsAdapter extends ArrayAdapter<Contact> {
 		TextView tvEmail = (TextView) view.findViewById(R.id.tvEmail);
 		TextView tvPhone = (TextView) view.findViewById(R.id.tvPhone);
 		tvName.setText(contact.name);
-		if (contact.emails.get(0) != null) {
+		if (contact.emails.size() > 0 && contact.emails.get(0) != null) {
 			tvEmail.setText(contact.emails.get(0).address);
 		}
-		if (contact.numbers.get(0) != null) {
+		if (contact.numbers.size() > 0 && contact.numbers.get(0) != null) {
 			tvPhone.setText(contact.numbers.get(0).number);
 		}
 		return view;
