@@ -54,9 +54,9 @@ public class ContactFetcher {
 	public void fetchContactNumbers(Cursor cursor, Contact contact) {
 		// Get numbers
 		final String[] numberProjection = new String[] { Phone.NUMBER, Phone.TYPE, };
-
+		
 		Cursor phone = new CursorLoader(context, Phone.CONTENT_URI, numberProjection,
-				RawContacts.CONTACT_ID + "= ?", new String[] { String.valueOf(contact.id) }, null)
+				Phone.CONTACT_ID +" = ?", new String[] { String.valueOf(contact.id) }, null)
 				.loadInBackground();
 
 		if (phone.moveToFirst()) {
@@ -82,7 +82,7 @@ public class ContactFetcher {
 		final String[] emailProjection = new String[] { Email.DATA, Email.TYPE };
 
 		Cursor email = new CursorLoader(context, Email.CONTENT_URI, emailProjection,
-				RawContacts.CONTACT_ID + "= ?", new String[] { String.valueOf(contact.id) }, null)
+				Email.CONTACT_ID + "= ?", new String[] { String.valueOf(contact.id) }, null)
 				.loadInBackground();
 
 		if (email.moveToFirst()) {

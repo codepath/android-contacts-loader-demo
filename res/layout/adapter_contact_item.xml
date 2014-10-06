@@ -30,6 +30,8 @@
         android:textColor="#575757"
         android:layout_alignBaseline="@+id/tvPhone"
         android:layout_alignBottom="@+id/tvPhone"
+        android:paddingLeft="5dp"
+        android:layout_toRightOf="@+id/tvPhone"
         android:layout_alignParentRight="true"
         android:text="bob@fake.com"
         android:textAppearance="?android:attr/textAppearanceMedium" />
