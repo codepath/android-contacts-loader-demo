@@ -1,106 +1,138 @@
 package com.codepath.examples.contactloader;
 
-import java.util.ArrayList;
-
 import android.content.Context;
 import android.database.Cursor;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
-import android.provider.ContactsContract.RawContacts;
 import android.support.v4.content.CursorLoader;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 // new ContactFetcher(this).fetchAll();
 public class ContactFetcher {
-	private Context context;
 
-	public ContactFetcher(Context c) {
-		this.context = c;
-	}
+    private final Context context;
 
-	public ArrayList<Contact> fetchAll() {
-		ArrayList<Contact> listContacts = new ArrayList<Contact>();
-		CursorLoader cursorLoader = new CursorLoader(context, RawContacts.CONTENT_URI, 
-				null, // the columns to retrieve (all)
-				null, // the selection criteria (none)
-				null, // the selection args (none)
-				null // the sort order (default)
-		);
+    public ContactFetcher(Context c) {
+        this.context = c;
+    }
 
-		Cursor c = cursorLoader.loadInBackground();
-		if (c.moveToFirst()) {
-			do {
-				Contact contact = loadContactData(c);
-				listContacts.add(contact);
-			} while (c.moveToNext());
-		}
-		c.close();
-		return listContacts;
-	}
+    public ArrayList<Contact> fetchAll() {
+        String[] projectionFields = new String[]{
+                ContactsContract.Contacts._ID,
+                ContactsContract.Contacts.DISPLAY_NAME,
+        };
+        ArrayList<Contact> listContacts = new ArrayList<>();
+        CursorLoader cursorLoader = new CursorLoader(context,
+                ContactsContract.Contacts.CONTENT_URI,
+                projectionFields, // the columns to retrieve
+                null, // the selection criteria (none)
+                null, // the selection args (none)
+                null // the sort order (default)
+        );
 
-	private Contact loadContactData(Cursor c) {
-		// Get Contact ID
-		int idIndex = c.getColumnIndex(ContactsContract.Contacts._ID);
-		String contactId = c.getString(idIndex);
-		// Get Contact Name
-		int nameIndex = c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
-		String contactDisplayName = c.getString(nameIndex);
-		Contact contact = new Contact(contactId, contactDisplayName);
-		fetchContactNumbers(c, contact);
-		fetchContactEmails(c, contact);
-		return contact;
-	}
+        Cursor c = cursorLoader.loadInBackground();
 
-	public void fetchContactNumbers(Cursor cursor, Contact contact) {
-		// Get numbers
-		final String[] numberProjection = new String[] { Phone.NUMBER, Phone.TYPE, };
-		
-		Cursor phone = new CursorLoader(context, Phone.CONTENT_URI, numberProjection,
-				Phone.CONTACT_ID +" = ?", new String[] { String.valueOf(contact.id) }, null)
-				.loadInBackground();
+        final Map<String, Contact> contactsMap = new HashMap<>(c.getCount());
 
-		if (phone.moveToFirst()) {
-			final int contactNumberColumnIndex = phone.getColumnIndex(Phone.NUMBER);
-			final int contactTypeColumnIndex = phone.getColumnIndex(Phone.TYPE);
+        if (c.moveToFirst()) {
 
-			while (!phone.isAfterLast()) {
-				final String number = phone.getString(contactNumberColumnIndex);
-				final int type = phone.getInt(contactTypeColumnIndex);
-				String customLabel = "Custom";
-				CharSequence phoneType = ContactsContract.CommonDataKinds.Phone.getTypeLabel(
-						context.getResources(), type, customLabel);
-				contact.addNumber(number, phoneType.toString());
-				phone.moveToNext();
-			}
+            int idIndex = c.getColumnIndex(ContactsContract.Contacts._ID);
+            int nameIndex = c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
 
-		}
-		phone.close();
-	}
+            do {
+                String contactId = c.getString(idIndex);
+                String contactDisplayName = c.getString(nameIndex);
+                Contact contact = new Contact(contactId, contactDisplayName);
+                contactsMap.put(contactId, contact);
+                listContacts.add(contact);
+            } while (c.moveToNext());
+        }
 
-	public void fetchContactEmails(Cursor cursor, Contact contact) {
-		// Get email
-		final String[] emailProjection = new String[] { Email.DATA, Email.TYPE };
+        c.close();
 
-		Cursor email = new CursorLoader(context, Email.CONTENT_URI, emailProjection,
-				Email.CONTACT_ID + "= ?", new String[] { String.valueOf(contact.id) }, null)
-				.loadInBackground();
+        matchContactNumbers(contactsMap);
+        matchContactEmails(contactsMap);
 
-		if (email.moveToFirst()) {
-			final int contactEmailColumnIndex = email.getColumnIndex(Email.DATA);
-			final int contactTypeColumnIndex = email.getColumnIndex(Email.TYPE);
+        return listContacts;
+    }
 
-			while (!email.isAfterLast()) {
-				final String address = email.getString(contactEmailColumnIndex);
-				final int type = email.getInt(contactTypeColumnIndex);
-				String customLabel = "Custom";
-				CharSequence emailType = ContactsContract.CommonDataKinds.Email.getTypeLabel(
-						context.getResources(), type, customLabel);
-				contact.addEmail(address, emailType.toString());
-				email.moveToNext();
-			}
+    public void matchContactNumbers(Map<String, Contact> contactsMap) {
+        // Get numbers
+        final String[] numberProjection = new String[]{
+                Phone.NUMBER,
+                Phone.TYPE,
+                Phone.CONTACT_ID,
+        };
 
-		}
+        Cursor phone = new CursorLoader(context,
+                Phone.CONTENT_URI,
+                numberProjection,
+                null,
+                null,
+                null).loadInBackground();
 
-		email.close();
-	}
+        if (phone.moveToFirst()) {
+            final int contactNumberColumnIndex = phone.getColumnIndex(Phone.NUMBER);
+            final int contactTypeColumnIndex = phone.getColumnIndex(Phone.TYPE);
+            final int contactIdColumnIndex = phone.getColumnIndex(Phone.CONTACT_ID);
+
+            while (!phone.isAfterLast()) {
+                final String number = phone.getString(contactNumberColumnIndex);
+                final String contactId = phone.getString(contactIdColumnIndex);
+                Contact contact = contactsMap.get(contactId);
+                if (contact == null) {
+                    continue;
+                }
+                final int type = phone.getInt(contactTypeColumnIndex);
+                String customLabel = "Custom";
+                CharSequence phoneType = ContactsContract.CommonDataKinds.Phone.getTypeLabel(context.getResources(), type, customLabel);
+                contact.addNumber(number, phoneType.toString());
+                phone.moveToNext();
+            }
+        }
+
+        phone.close();
+    }
+
+    public void matchContactEmails(Map<String, Contact> contactsMap) {
+        // Get email
+        final String[] emailProjection = new String[]{
+                Email.DATA,
+                Email.TYPE,
+                Email.CONTACT_ID,
+        };
+
+        Cursor email = new CursorLoader(context,
+                Email.CONTENT_URI,
+                emailProjection,
+                null,
+                null,
+                null).loadInBackground();
+
+        if (email.moveToFirst()) {
+            final int contactEmailColumnIndex = email.getColumnIndex(Email.DATA);
+            final int contactTypeColumnIndex = email.getColumnIndex(Email.TYPE);
+            final int contactIdColumnsIndex = email.getColumnIndex(Email.CONTACT_ID);
+
+            while (!email.isAfterLast()) {
+                final String address = email.getString(contactEmailColumnIndex);
+                final String contactId = email.getString(contactIdColumnsIndex);
+                final int type = email.getInt(contactTypeColumnIndex);
+                String customLabel = "Custom";
+                Contact contact = contactsMap.get(contactId);
+                if (contact == null) {
+                    continue;
+                }
+                CharSequence emailType = ContactsContract.CommonDataKinds.Email.getTypeLabel(context.getResources(), type, customLabel);
+                contact.addEmail(address, emailType.toString());
+                email.moveToNext();
+            }
+        }
+
+        email.close();
+    }
 }
