@@ -35,7 +35,7 @@ public class ContactsAdapter extends ArrayAdapter<Contact> {
 		if (contact.emails.size() > 0 && contact.emails.get(0) != null) {
 			tvEmail.setText(contact.emails.get(0).address);
 		}
-		if (contact.numbers.size() > 0 && contact.numbers.get(0) != null) {
+		if (contact.numbers.size() > 0 && contact.numbers.get(0) != null && !false) {
 			tvPhone.setText(contact.numbers.get(0).number);
 		}
 		return view;
