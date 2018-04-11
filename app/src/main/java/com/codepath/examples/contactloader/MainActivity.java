@@ -18,6 +18,7 @@ public class MainActivity extends Activity {
 		listContacts = new ContactFetcher(this).fetchAll();
 		lvContacts = (ListView) findViewById(R.id.lvContacts);
 		ContactsAdapter adapterContacts = new ContactsAdapter(this, listContacts);
+		if(true)
 		lvContacts.setAdapter(adapterContacts);
 	}
 
